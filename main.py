@@ -1,17 +1,22 @@
 import eventlet
 import socketio
+from datetime import datetime
 from q import Queue
+from person import Person
 
+# SERVER SET UP
 socket = socketio.Server(cors_allowed_origins="*")
 app = socketio.WSGIApp(socket, static_files={
     '/': {'content_type': 'text/html', 'filename': 'index.html'}
 })
 
-clients = set()
+# GLOBAL DATA STRUCTURES
+clients = {}
 talkees = Queue()
 listeners = Queue()
 connections = {}
 
+# DEBUG FUNCTION, MIGHT DELETE LATER
 def check_clients():
     print(f"clients -> {clients}")
     print(f"listeners -> ", end="")
@@ -23,71 +28,76 @@ def check_clients():
 @socket.event
 def connect(sid, environ):
     print("[CONNECTED]", sid)
-    clients.add(sid)
+    clients[sid] = Person(sid)
 
 @socket.event
 def disconnect(sid):
     print("[DISCONNECTED]", sid)
-    clients.remove(sid)
+    disconnected_person = clients.pop(sid)
 
     # send information to still connected client that other client has disconnected
-    other_client = connections.pop(sid, None)
+    other_client_sid = disconnected_person.other_client_sid
 
-    if other_client:
-        other_client_sid = other_client["sid"]
+    if other_client_sid:
         # remove the other client from connections
-        connections.pop(other_client_sid, None)
+        clients[other_client_sid].disconnect()
         socket.emit("client_disconnected", room=other_client_sid)
 
 @socket.event
 def message(sid, data):
-    target_sid = connections[sid]["sid"]
-    print(f"[MESSAGE RECEIVED]", data)
+    response = {
+        "message": data["message"],
+        "time": str(datetime.now()),
+        "from": clients[sid].name,
+        "viewwed": True
+    }
 
-    socket.emit("message", data, room=target_sid)
+    socket.emit("message", response,
+                room=clients[sid].other_client_sid
+                )
 
 @socket.event
 def talkee_join(sid, data):
-    data["sid"] = sid
+    talkee = clients[sid]
+    talkee.set_name(data["name"], "talkee")
 
     # check if can be paired with listener and add them to connection if so
     if not listeners.is_empty():
 
         listener = listeners.dequeue()
-        connect(data, listener)
+        talkee.connect_to(listener)
+
         socket.emit("chat_connected", room=sid)
-        socket.emit("chat_connected", room=listener["sid"])
+        socket.emit("chat_connected", room=listener.sid)
 
     # if listener queue is empty add talkee to queue
     else:
-        talkees.enqueue(data)
+        talkees.enqueue(talkee)
         socket.emit("enqueued", room=sid)
+
+    # DEBUG MESSAGE
     check_clients()
 
 @socket.event
 def listener_join(sid, data):
-    data["sid"] = sid
-    print("[LISTENER]", data)
+    listener = clients[sid]
+    listener.set_name(data["name"], "listener")
 
     # check if can be paired with talkee and add them to connection if so
     if not talkees.is_empty():
 
         talkee = talkees.dequeue()
-        connect(talkee, data)
+        listener.connect_to(talkee)
 
         socket.emit("chat_connected", room=sid)
-        socket.emit("chat_connected", room=talkee["sid"])
+        socket.emit("chat_connected", room=talkee.sid)
 
     # if listener queue is empty add listener to queue
     else:
-        listeners.enqueue(data)
+        listeners.enqueue(listener)
         socket.emit("enqueued", room=sid)
 
     check_clients()
-
-def connect(conn1, conn2):
-    connections[conn1["sid"]] = conn2
-    connections[conn2["sid"]] = conn1
 
 if __name__ == '__main__':
     eventlet.wsgi.server(eventlet.listen(('localhost', 5000)), app)
