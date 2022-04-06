@@ -1,6 +1,5 @@
 import eventlet
 import socketio
-from datetime import datetime
 from q import Queue
 from person import Person
 
@@ -45,11 +44,12 @@ def disconnect(sid):
 
 @socket.event
 def message(sid, data):
+    print("[MESSAGE]", data)
     response = {
         "message": data["message"],
-        "time": str(datetime.now()),
+        "time": data["time"],
         "from": clients[sid].name,
-        "viewwed": True
+        "viewed": True
     }
 
     socket.emit("message", response,
