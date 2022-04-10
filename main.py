@@ -100,4 +100,5 @@ def listener_join(sid, data):
     check_clients()
 
 if __name__ == '__main__':
-    eventlet.wsgi.server(eventlet.listen(('localhost', 5000)), app)
+    # eventlet.wsgi.server(eventlet.listen(('localhost', 5000)), app)
+    eventlet.wsgi.server(eventlet.listen(('', 5000)), app)
