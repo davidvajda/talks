@@ -13,7 +13,6 @@ app = socketio.WSGIApp(socket, static_files={
 clients = {}
 talkees = Queue()
 listeners = Queue()
-connections = {}
 
 # DEBUG FUNCTION, MIGHT DELETE LATER
 def check_clients():
@@ -22,7 +21,6 @@ def check_clients():
     listeners.print_queue()
     print(f"talkees -> ", end="")
     talkees.print_queue()
-    print(f"connections -> {connections}")
 
 @socket.event
 def connect(sid, environ):
@@ -49,7 +47,6 @@ def message(sid, data):
         "message": data["message"],
         "time": data["time"],
         "from": clients[sid].name,
-        "viewed": True
     }
 
     socket.emit("message", response,
@@ -67,8 +64,9 @@ def talkee_join(sid, data):
         listener = listeners.dequeue()
         talkee.connect_to(listener)
 
-        socket.emit("chat_connected", room=sid)
-        socket.emit("chat_connected", room=listener.sid)
+        # send information to talkee then to listener
+        socket.emit("chat_connected", listener.jsonify(), room=sid)
+        socket.emit("chat_connected", talkee.jsonify(), room=listener.sid)
 
     # if listener queue is empty add talkee to queue
     else:
@@ -89,8 +87,9 @@ def listener_join(sid, data):
         talkee = talkees.dequeue()
         listener.connect_to(talkee)
 
-        socket.emit("chat_connected", room=sid)
-        socket.emit("chat_connected", room=talkee.sid)
+        # send information to listener then to talkee
+        socket.emit("chat_connected", talkee.jsonify(), room=sid)
+        socket.emit("chat_connected", listener.jsonify(), room=talkee.sid)
 
     # if listener queue is empty add listener to queue
     else:
@@ -100,5 +99,5 @@ def listener_join(sid, data):
     check_clients()
 
 if __name__ == '__main__':
-    # eventlet.wsgi.server(eventlet.listen(('localhost', 5000)), app)
-    eventlet.wsgi.server(eventlet.listen(('', 5000)), app)
+    eventlet.wsgi.server(eventlet.listen(('localhost', 5000)), app)
+    # eventlet.wsgi.server(eventlet.listen(('', 5000)), app)

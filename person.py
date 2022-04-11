@@ -22,5 +22,4 @@ class Person:
             "sid": self.sid,
             "name": self.name,
             "role": self.role,
-            "other_client_sid": self.other_client_sid
         }
