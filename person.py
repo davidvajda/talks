@@ -12,6 +12,9 @@ class Person:
     def connect_to(self, other_person):
         self.other_client_sid = other_person.sid
         other_person.other_client_sid = self.sid
+        print("[CONNECTING]")
+        print(self.jsonify())
+        print(other_person.jsonify())
 
     def disconnect(self):
         self.other_client_sid = None
