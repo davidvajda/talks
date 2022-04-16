@@ -29,14 +29,18 @@ def check_clients():
 def connect(sid, environ):
     print("[CONNECTED]", sid)
     clients[sid] = Person(sid)
+    clients[sid].set_environ(environ)
     socket.emit("connected", sid)
 
 @socket.event
 def disconnect(sid):
-    print("[DISCONNECTED]", sid)
+    if sid not in clients:
+        return
 
     disconnected_person = clients.pop(sid)
     other_client_sid = disconnected_person.other_client_sid
+
+    print("[DISCONNECTED]", disconnected_person.jsonify())
 
     # IF THE OTHER CLIENT IS STILL CONNECTED
     if other_client_sid in clients:
@@ -44,42 +48,35 @@ def disconnect(sid):
         # add disconnected client to set for possible connection restoration
         reconnects[sid] = disconnected_person
 
-        response = {
-            "message": f"{disconnected_person.name} has disconnected...",
-            "type": "alert",
-            "time": "1111", # TODO: send epoch time
-            "from": disconnected_person.name,
-        }
-        socket.emit("message", response,
-                    room=other_client_sid
-                    )
-        print(f"[LOG] adding {disconnected_person.sid}/{disconnected_person.name} to reconnects")
+        send_message(
+            message = f"{disconnected_person.name} has disconnected...",
+            type = "alert",
+            to=other_client_sid,
+        )
 
     # IF CLIENT IS NO LONGER CONNECTED
     elif other_client_sid in reconnects:
-        print(f"[LOG] cancelling connection between {other_client_sid}/{reconnects[other_client_sid]} and {disconnected_person.sid}/{disconnected_person.name}")
         reconnects.pop(other_client_sid)
 
     check_clients()
 
 @socket.event
 def message(sid, data):
-    response = {
-        "message": data["message"],
-        "type": "message",
-        "time": data["time"],
-        "from": clients[sid].name,
-    }
-    socket.emit("message", response,
-                room=clients[sid].other_client_sid
-                )
+    client = clients.get(sid)
+    if not client:
+        return
+
+    send_message(
+        message = data["message"],
+        time=data["time"],
+        to=client.other_client_sid
+    )
 
 @socket.event
 def reconnect(sid, prev_sid):
     # GET PERSON FROM RECONNECTS AND REMOVE HIM FROM THE DICT
     reconnected_client = reconnects.get(prev_sid)
     if not reconnected_client:
-        print(f"[FAILED] {prev_sid} not found in reconnects, current sid {sid}")
         return
     reconnects.pop(prev_sid)
 
@@ -93,24 +90,28 @@ def reconnect(sid, prev_sid):
 
     # restoring connection
     clients[sid].connect_to(clients[other_client_sid])
-    print(f"[RECONNECTED] {clients[sid].name} and {clients[other_client_sid].name}")
 
     # sending informatin to both clients
-    response = {
-        "message": f"{reconnected_client.name} has reconnected...",
-        "type": "alert",
-        "time": "1234",
-        "from": reconnected_client.name,
-    }
-    socket.emit("message", response, room=other_client_sid)
+    send_message(
+        message = f"{reconnected_client.name} has reconnected...",
+        type = "alert",
+        to=other_client_sid
+    )
     socket.emit("chat_connected", clients[other_client_sid].jsonify(), room=sid)
 
-    response["message"] = "You have been reconnected..."
-    socket.emit("message", response, room=other_client_sid)
+    send_message(
+        message = "You have been reconnected...",
+        type = "alert",
+        to=sid
+    )
 
 @socket.event
 def talkee_join(sid, data):
-    talkee = clients[sid]
+    talkee = clients.get(sid)
+
+    if not talkee:
+        return
+
     talkee.set_name(data["name"], "talkee")
 
     # check if can be paired with listener and add them to connection if so
@@ -128,12 +129,13 @@ def talkee_join(sid, data):
         talkees.enqueue(talkee)
         socket.emit("enqueued", room=sid)
 
-    # DEBUG MESSAGE
-    check_clients()
-
 @socket.event
 def listener_join(sid, data):
-    listener = clients[sid]
+    listener = clients.get(sid)
+
+    if not listener:
+        return
+
     listener.set_name(data["name"], "listener")
 
     # check if can be paired with talkee and add them to connection if so
@@ -151,7 +153,35 @@ def listener_join(sid, data):
         listeners.enqueue(listener)
         socket.emit("enqueued", room=sid)
 
-    check_clients()
+@socket.event
+def leave_chat(sid):
+    if sid not in clients:
+        return
+
+    disconnected_client = clients.get(sid)
+    clients[sid].disconnect()
+    other_client_sid = disconnected_client.other_client_sid
+
+    # send information to other client
+    send_message(
+        message=f"{disconnected_client.name} has disconnected...",
+        type="alert",
+        to=other_client_sid
+    )
+
+def epoch():
+    return round(time.time() * 1000)
+
+def send_message(message = None, type = "message", time = None, to = None):
+    if not time:
+        time = epoch()
+
+    response = {
+        "message": message,
+        "type": type,
+        "time": time,
+    }
+    socket.emit("message", response, room=to)
 
 if __name__ == '__main__':
     # eventlet.wsgi.server(eventlet.listen(('localhost', 5000)), app, debug=True)
