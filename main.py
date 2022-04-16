@@ -1,3 +1,5 @@
+import os
+
 import eventlet
 import socketio
 import time
@@ -185,4 +187,4 @@ def send_message(message = None, type = "message", time = None, to = None):
 
 if __name__ == '__main__':
     # eventlet.wsgi.server(eventlet.listen(('localhost', 5000)), app, debug=True)
-    eventlet.wsgi.server(eventlet.listen(('', 5000)), app)
+    eventlet.wsgi.server(eventlet.listen(('', os.environ.get('PORT', 5000))), app)
