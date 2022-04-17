@@ -1,6 +1,4 @@
-import os
-
-import eventlet
+import logging
 import socketio
 import time
 from q import Queue
@@ -29,7 +27,8 @@ def check_clients():
 
 @socket.event
 def connect(sid, environ):
-    print("[CONNECTED]", sid)
+    logging.debug(f"[CONNECTED] {sid}")
+    # print("[CONNECTED]", sid)
     clients[sid] = Person(sid)
     clients[sid].set_environ(environ)
     socket.emit("connected", sid)
@@ -42,7 +41,8 @@ def disconnect(sid):
     disconnected_person = clients.pop(sid)
     other_client_sid = disconnected_person.other_client_sid
 
-    print("[DISCONNECTED]", disconnected_person.jsonify())
+    logging.debug(f"[DISCONNECTED] {disconnected_person.jsonify()}")
+    # print("[DISCONNECTED]", disconnected_person.jsonify())
 
     # IF THE OTHER CLIENT IS STILL CONNECTED
     if other_client_sid in clients:
