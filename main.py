@@ -8,7 +8,7 @@ from q import Queue
 from person import Person
 
 # SERVER SET UP
-socket = socketio.Server(cors_allowed_origins="*")
+socket = socketio.Server(cors_allowed_origins="*", logger=True, engineio_logger=True)
 app = socketio.WSGIApp(socket, static_files={
     '/': {'content_type': 'text/html', 'filename': 'index.html'}
 })
@@ -189,5 +189,6 @@ def send_message(message = None, type = "message", time = None, to = None):
     socket.emit("message", response, room=to)
 
 if __name__ == '__main__':
+    port = os.environ.get("PORT", 5000)
     # eventlet.wsgi.server(eventlet.listen(('localhost', 5000)), app, debug=True)
-    eventlet.wsgi.server(eventlet.listen(('', int(os.environ.get('PORT', 9999)))), app)
+    eventlet.wsgi.server(eventlet.listen(('', int(port))), app)
