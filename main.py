@@ -185,6 +185,6 @@ def send_message(message = None, type = "message", time = None, to = None):
     }
     socket.emit("message", response, room=to)
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
     # eventlet.wsgi.server(eventlet.listen(('localhost', 5000)), app, debug=True)
-    eventlet.wsgi.server(eventlet.listen(('', os.environ.get('PORT', 5000))), app)
+    # eventlet.wsgi.server(eventlet.listen(('', os.environ.get('PORT', 5000))), app)
