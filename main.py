@@ -30,7 +30,7 @@ def check_clients():
 
 @socket.event
 def connect(sid, environ):
-    logging.debug(f"[CONNECTED] {sid}")
+    logging.critical(f"[CONNECTED] {sid}")
     # print("[CONNECTED]", sid)
     clients[sid] = Person(sid)
     clients[sid].set_environ(environ)
@@ -44,7 +44,7 @@ def disconnect(sid):
     disconnected_person = clients.pop(sid)
     other_client_sid = disconnected_person.other_client_sid
 
-    logging.debug(f"[DISCONNECTED] {disconnected_person.jsonify()}")
+    logging.critical(f"[DISCONNECTED] {disconnected_person.jsonify()}")
     # print("[DISCONNECTED]", disconnected_person.jsonify())
 
     # IF THE OTHER CLIENT IS STILL CONNECTED
@@ -190,4 +190,4 @@ def send_message(message = None, type = "message", time = None, to = None):
 
 if __name__ == '__main__':
     # eventlet.wsgi.server(eventlet.listen(('localhost', 5000)), app, debug=True)
-    eventlet.wsgi.server(eventlet.listen(('', int(os.environ.get('PORT', 5000)))), app)
+    eventlet.wsgi.server(eventlet.listen(('', int(os.environ.get('PORT', 9999)))), app)
