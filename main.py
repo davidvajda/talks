@@ -199,5 +199,5 @@ def send_message(message = None, type = "message", time = None, to = None):
 
 if __name__ == '__main__':
     port = os.environ.get("PORT", 5000)
-    eventlet.wsgi.server(eventlet.listen(('localhost', 5000)), app, debug=True)
-    # eventlet.wsgi.server(eventlet.listen(('', int(port))), app)
+    # eventlet.wsgi.server(eventlet.listen(('localhost', 5000)), app, debug=True)
+    eventlet.wsgi.server(eventlet.listen(('', int(port))), app)
