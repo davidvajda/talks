@@ -26,6 +26,9 @@ class Queue:
         self.front = self.front.next
         return node.data
 
+    def peek(self):
+        return self.front
+
     def is_empty(self):
         if not self.front:
             return True

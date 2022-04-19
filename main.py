@@ -114,6 +114,12 @@ def talkee_join(sid, data):
         print(f"[ERROR] Talkee {sid} not found in clients!")
         return
 
+    # in case of multiple event calls enqueue client only once
+    talkee_in_front = talkees.peek()
+    if talkee_in_front and sid == talkee_in_front.sid:
+        print(f"[WARNING] Talkee {sid} already enqueued!")
+        return
+
     talkee.set_name(data["name"], "talkee")
 
     # get available listener from queue
@@ -142,6 +148,12 @@ def listener_join(sid, data):
 
     if not listener:
         print(f"[ERROR] Listener {sid} not found in clients!")
+        return
+
+    # in case of multiple event calls enqueue client only once
+    listener_in_front = listeners.peek()
+    if listener_in_front and sid == listener_in_front.sid:
+        print(f"[WARNING] Listener {sid} already enqueued!")
         return
 
     listener.set_name(data["name"], "listener")
