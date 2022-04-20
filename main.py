@@ -1,8 +1,9 @@
 import os
+import time
 
 import eventlet
 import socketio
-import time
+
 from q import Queue
 from person import Person
 
@@ -12,7 +13,7 @@ app = socketio.WSGIApp(socket, static_files={
     '/': {'content_type': 'text/html', 'filename': 'index.html'}
 })
 
-# GLOBAL DATA STRUCTURES
+# GLOBAL VARIABLES
 clients = {}
 reconnects = {}
 talkees = Queue()
