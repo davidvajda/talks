@@ -27,7 +27,9 @@ class Queue:
         return node.data
 
     def peek(self):
-        return self.front
+        if not self.is_empty():
+            return self.front.data
+        return None
 
     def is_empty(self):
         if not self.front:

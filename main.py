@@ -9,9 +9,7 @@ from person import Person
 
 # SERVER SET UP
 socket = socketio.Server(cors_allowed_origins="*")
-app = socketio.WSGIApp(socket, static_files={
-    '/': {'content_type': 'text/html', 'filename': 'index.html'}
-})
+app = socketio.WSGIApp(socket)
 
 # GLOBAL VARIABLES
 clients = {}
