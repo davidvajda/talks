@@ -17,7 +17,7 @@ reconnects = {}
 talkees = Queue()
 listeners = Queue()
 
-# DEBUG FUNCTION, MIGHT DELETE LATER
+# DEBUG FUNCTION
 @socket.event
 def check_clients(sid):
     print(f"clients -> {clients}")
@@ -29,9 +29,12 @@ def check_clients(sid):
 
 @socket.event
 def connect(sid, environ):
+    # connected clients are stored in dictionary {clients}
     print("[CONNECTED]", sid)
+    
     clients[sid] = Person(sid)
     clients[sid].set_environ(environ)
+    
     socket.emit("connected", sid)
 
 @socket.event
@@ -39,19 +42,19 @@ def disconnect(sid):
     if sid not in clients:
         return
 
-    disconnected_person = clients.pop(sid)
-    other_client_sid = disconnected_person.other_client_sid
+    disconnected_client = clients.pop(sid)
+    other_client_sid = disconnected_client.other_client_sid
 
-    print("[DISCONNECTED]", disconnected_person.jsonify())
+    print("[DISCONNECTED]", disconnected_client.jsonify())
 
     # IF THE OTHER CLIENT IS STILL CONNECTED
     if other_client_sid in clients:
-        # send information to other client
-        # add disconnected client to set for possible connection restoration
-        reconnects[sid] = disconnected_person
+        # store disconnected client in {reconnects} for possible reconnection
+        reconnects[sid] = disconnected_client
 
+        # send information to other client
         send_message(
-            message = f"{disconnected_person.name} has disconnected...",
+            message = f"{disconnected_client.name} has disconnected...",
             type = "alert",
             to=other_client_sid,
         )
@@ -62,6 +65,7 @@ def disconnect(sid):
 
 @socket.event
 def message(sid, data):
+    # forward the message to other client
     client = clients.get(sid)
     if not client:
         return
@@ -74,11 +78,10 @@ def message(sid, data):
 
 @socket.event
 def reconnect(sid, prev_sid):
-    # Pop person instance out of reconnects dictionary
-    reconnected_client = reconnects.get(prev_sid)
-    if not reconnected_client:
+    # get person instance out of reconnects
+    if not reconnects.get(prev_sid):
         return
-    reconnects.pop(prev_sid)
+    reconnected_client = reconnects.pop(prev_sid)
 
     # restore the information from original person instance
     other_client_sid = reconnected_client.other_client_sid
@@ -105,6 +108,7 @@ def reconnect(sid, prev_sid):
         to=sid
     )
 
+# TODO: refactor/merge talke_join and listener_join
 @socket.event
 def talkee_join(sid, data):
     talkee = clients.get(sid)
